@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
 import SpotifyWebApi from 'spotify-web-api-js';
+import Navigation from './Navigation.js'
 
 const spotifyApi = new SpotifyWebApi();
 
@@ -14,8 +15,8 @@ class App extends Component {
     }
     this.state = {
       loggedIn: token ? true : false,
-      nowPlaying: { name: 'Not Checked',  albumName: '', artistId: '', albumArt: '', device: '' },
-      currentAlbum: { name: ''}
+      nowPlaying: { name: 'Not Checked',  albumName: '', albumId: '', albumArt: '', device: '' },
+      currentAlbum: { albumName: ''}
     }
   }
 
@@ -31,57 +32,82 @@ class App extends Component {
     return hashParams;
   }
 
-  getNowPlaying(){
+  componentDidMount (){
+    if (this.state.loggedIn === true)    
     spotifyApi.getMyCurrentPlaybackState()
-      .then((response) => {
+      .then((response) => {        
         this.setState({
           nowPlaying: { 
               name: response.item.name, 
-              albumName: response.item.album.name,
-              artistId: response.item.album.artists[0].id,
-              albumArt: response.item.album.images[0].url,
-              device: response.device.name
+              device: response.item.device,
+              albumId: response.item.album.id,
+              albumArt: response.item.album.images[0].url
             }
         });
       })
   }
 
-  getArtistAlbums(){
-    spotifyApi.getArtistAlbums(this.state.nowPlaying.artistId, 'single,appears_on', 'ES', '10', '5')
-    .then((response) => {
-      this.setState({
+  getArtistAlbums = () => {
+    spotifyApi.getArtistAlbums('43ZHCT0cAZBISjO8DG9PnE')
+    .then((data) => {
+      console.log('Artist albums', data);
+      this.setState ({
         currentAlbum: {
-          name: response.albuns.artists[0]
+          albumName: data.items[0].artists[0].name
         }
       })
+    }, function(err) {
+      console.error(err);
     });
   }
 
+  getCurrentArtist = () => {
+    spotifyApi.getArtist('2hazSY4Ef3aB9ATXW7F5w3')
+    .then(function(data) {
+      console.log('Artist information', data);
+    }, function(err) {
+      console.error(err);
+    });
+  }
+  
+
   render() {
     return (
-      <div className="App">
-        <a href='http://localhost:8888' > Login to Spotify </a>
+      <div className="App">  
 
-        <div>Current Device: { this.state.nowPlaying.device }</div>
+        <header>
+          Spotify APP
+        </header>
 
-        <div>Now Playing: { this.state.nowPlaying.name } </div>
+        {!this.state.loggedIn.token && <form className='frm-login'>
+          <a className='login' href='http://localhost:8888' > Login to Spotify </a>
+        </form>}
+        
+        <div className='currPlaying'>
+          <div>Current Device: { this.state.nowPlaying.device }</div>
 
-        <div>Artist ID: { this.state.nowPlaying.artistId } </div>
+          <div>Now Playing: { this.state.nowPlaying.name } </div>
 
-        <div>Current Album: { this.state.currentAlbum.name }</div>
+          <div>Album ID: { this.state.nowPlaying.albumId } </div>
+
+          <div style={{ marginBottom: 10 }}>Current Album: { this.state.currentAlbum.albumName }</div>
+        </div>
+        
         
         <div>
           <img src={this.state.nowPlaying.albumArt} style={{ height: 250 }}/>
         </div>
-        { this.state.loggedIn &&
-          <button onClick={() => this.getNowPlaying()}>
-            Check Now Playing
+        
+
+        <div>
+          <button onClick={this.getArtistAlbums}>
+            Albums
           </button>
-        }
+        </div>
         
         <div>
-          <button onClick={() => { this.getArtistAlbums() }}>
-            Albums
+          <button onClick={this.getCurrentArtist}>
+            Artist
           </button>
         </div>
       </div>
